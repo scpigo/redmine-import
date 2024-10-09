@@ -347,6 +347,13 @@ class RedmineClient extends Client
         return isset($response->id) ? $response->id : false;
     }
 
+    public function deleteUser($userId)
+    {
+        $response = $this->user->remove($userId);
+
+        return isset($response->id) ? $response->id : false;
+    }
+
     public function getAllPriorities($params = [])
     {
         $priorities = $this->issue_priority->all($params)["issue_priorities"];

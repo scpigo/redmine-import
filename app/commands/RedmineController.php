@@ -69,7 +69,7 @@ class RedmineController extends Controller
         /** @var RedmineClient $redmine_new */
         $redmine_old = \Yii::$app->redmine_old;
 
-        /** @var RedmineClient $redmine */
+        /** @var RedmineClient $redmine_new */
         $redmine_new = \Yii::$app->redmine_new;
 
         $usersData = json_decode(file_get_contents(Yii::getAlias('@app').'/redmine_data/users.json'), true);
@@ -88,6 +88,7 @@ class RedmineController extends Controller
         }
 
         $users = [];
+        $usedUsersNames = [];
 
         if ($newUsers) {
             echo "importing users...\n";
@@ -150,6 +151,7 @@ class RedmineController extends Controller
                 $createIssueData['assigned_to'] = $issueData['assigned_to']['name'];
 
                 $login = $users[$issueData['assigned_to']['name']]['login'];
+                $usedUsersNames = self::setUsedUser($usedUsersNames, $issueData['assigned_to']['name']);
             }
 
             if (isset($issueData['category'])) $createIssueData['category'] = $issueData['category']['name'];
@@ -210,6 +212,7 @@ class RedmineController extends Controller
 
                         if (!empty($journalData)) {
                             $redmine_new->updateIssue($id[0], $journalData, $journalLogin);
+                            $usedUsersNames = self::setUsedUser($usedUsersNames, $journal['user']['name']);
                         }
                     }
                 }
@@ -241,6 +244,8 @@ class RedmineController extends Controller
                 ];
 
                 $redmine_new->createTimeEntry($createTimeEntryData, $users[$timeEntryData['user']['name']]['login']);
+
+                $usedUsersNames = self::setUsedUser($usedUsersNames, $timeEntryData['user']['name']);
             }
         }
 
@@ -265,6 +270,27 @@ class RedmineController extends Controller
                 'user_id' => $users[$userData['lastname'] .' '. $userData['firstname']]['id'],
                 'role_ids' => $roleIds
             ]);
+
+            $usedUsersNames = self::setUsedUser($usedUsersNames, $userData['lastname'] .' '. $userData['firstname']);
         }
+
+        if ($newUsers) {
+            echo "removing unnecessary users...\n";
+
+            foreach ($users as $name => $user) {
+                if (!in_array($name, $usedUsersNames)) {
+                    $redmine_new->deleteUser($user['id']);
+                }
+            }
+        }
+    }
+
+    protected function setUsedUser(array $users, string $name)
+    {
+        if (!in_array($name, $users)) {
+            $users[] = $name;
+        }
+
+        return $users;
     }
 }
