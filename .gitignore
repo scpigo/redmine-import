@@ -1,0 +1,16 @@
+.idea
+/app/vendor/
+/app/redmine_data/*
+/app/web/*.sql
+/app/composer.phar
+*.log
+/app/.env
+
+composer.lock
+tags
+/config/jwt/*.pem
+/*.sql
+/docker/volume
+.env
+
+.ai
