@@ -54,6 +54,21 @@ class RedmineController extends Controller
 
         file_put_contents(Yii::getAlias('@app').'/redmine_data/issues.json', json_encode($resultIssues));
 
+        echo "exporting attachments...\n";
+
+        $resultIssues = json_decode(file_get_contents(Yii::getAlias('@app').'/redmine_data/issues.json'), true);
+
+        foreach ($resultIssues as $issue) {
+            if (!empty($issue['attachments'])) {
+                if (!is_dir(Yii::getAlias('@app').'/redmine_data/attachments/'.$issue['id'])) {
+                    mkdir(Yii::getAlias('@app').'/redmine_data/attachments/'.$issue['id'], 0777, true);
+                }
+            }
+            foreach ($issue['attachments'] as $attachment) {
+                file_put_contents(Yii::getAlias('@app').'/redmine_data/attachments/'.$issue['id'].'/'.$attachment['filename'], $redmine_old->downloadAttachment($attachment['id']));
+            }
+        }
+
         echo "exporting time entries...\n";
 
         $resultTimeEntries = $redmine_old->getAllTimeEntriesParams([
@@ -64,11 +79,8 @@ class RedmineController extends Controller
         file_put_contents(Yii::getAlias('@app').'/redmine_data/timeentries.json', json_encode($resultTimeEntries));
     }
 
-    public function actionImportData(bool $newUsers = true, $projectId = 1, $oldProjectId = 84)
+    public function actionImportData($projectId = 1, $oldProjectId = 84, bool $newUsers = true)
     {
-        /** @var RedmineClient $redmine_new */
-        $redmine_old = \Yii::$app->redmine_old;
-
         /** @var RedmineClient $redmine_new */
         $redmine_new = \Yii::$app->redmine_new;
 
@@ -191,10 +203,10 @@ class RedmineController extends Controller
 
                         $uploads = [];
                         foreach ($journal['details'] as $detail) {
-                            if ($detail['property'] === 'attachment') {
+                            if ($detail['property'] === 'attachment' && $detail['new_value'] != null) {
                                 $attachment = $issueData['attachments'][$detail['name']];
                                 $uploads[] = [
-                                    'token' => $redmine_new->createAttachment($redmine_old->downloadAttachment($attachment['id']), ['filename' => $attachment['filename']], $journalLogin),
+                                    'token' => $redmine_new->createAttachment(file_get_contents(Yii::getAlias('@app').'/redmine_data/attachments/'.$issueData['id'].'/'.$attachment['filename']), ['filename' => $attachment['filename']], $journalLogin),
                                     'filename' => $attachment['filename'],
                                     'content_type' => $attachment['content_type'],
                                 ];

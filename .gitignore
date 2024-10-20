@@ -1,6 +1,7 @@
 .idea
 /app/vendor/
-/app/redmine_data/*
+/app/redmine_data/*.json
+/app/redmine_data/attachments/*
 /app/web/*.sql
 /app/composer.phar
 *.log
